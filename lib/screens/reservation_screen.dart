@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../models/hotel.dart';
+import '../models/reservation.dart';
 import '../widgets/reservation_tile.dart';
+import 'my_reservations_screen.dart';
 
 class ReservationScreen extends StatefulWidget {
   final Hotel hotel;
@@ -17,16 +19,31 @@ class _ReservationScreenState extends State<ReservationScreen> {
   DateTime? checkOutDate;
   int guestCount = 1;
 
+  int get selectedNights {
+    if (checkInDate == null || checkOutDate == null) return 0;
+    if (!checkOutDate!.isAfter(checkInDate!)) return 0;
+    return checkOutDate!.difference(checkInDate!).inDays;
+  }
+
+  double get estimatedTotal {
+    return widget.hotel.pricePerNight * selectedNights * guestCount;
+  }
+
   Future<void> pickDate({required bool isCheckIn}) async {
     final today = DateTime.now();
+    final firstAvailableDate = isCheckIn
+        ? today
+        : (checkInDate ?? today).add(const Duration(days: 1));
     final initialDate = isCheckIn
         ? (checkInDate ?? today)
-        : (checkOutDate ?? today.add(const Duration(days: 1)));
+        : (checkOutDate != null && checkOutDate!.isAfter(firstAvailableDate))
+            ? checkOutDate!
+            : firstAvailableDate;
 
     final picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
-      firstDate: today,
+      firstDate: firstAvailableDate,
       lastDate: today.add(const Duration(days: 365)),
     );
 
@@ -35,7 +52,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
     setState(() {
       if (isCheckIn) {
         checkInDate = picked;
-        if (checkOutDate != null && !checkOutDate!.isAfter(picked)) {
+        if (checkOutDate == null || !checkOutDate!.isAfter(picked)) {
           checkOutDate = picked.add(const Duration(days: 1));
         }
       } else {
@@ -65,8 +82,19 @@ class _ReservationScreenState extends State<ReservationScreen> {
       return;
     }
 
-    final nights = checkOutDate!.difference(checkInDate!).inDays;
-    final total = (widget.hotel.pricePerNight * nights) * guestCount;
+    final nights = selectedNights;
+    final total = estimatedTotal;
+
+    ReservationStore.addReservation(
+      Reservation(
+        hotel: widget.hotel,
+        checkInDate: checkInDate!,
+        checkOutDate: checkOutDate!,
+        guestCount: guestCount,
+        totalPrice: total,
+        createdAt: DateTime.now(),
+      ),
+    );
 
     showDialog(
       context: context,
@@ -80,9 +108,103 @@ class _ReservationScreenState extends State<ReservationScreen> {
               onPressed: () => Navigator.pop(context),
               child: const Text('OK'),
             ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const MyReservationsScreen(),
+                  ),
+                );
+              },
+              child: const Text('View reservations'),
+            ),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildPriceSummary() {
+    final hasDates = selectedNights > 0;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.blue.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Price summary',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade900,
+                ),
+              ),
+              Icon(Icons.receipt_long, color: Colors.blue.shade700),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _summaryRow(
+            'Room price',
+            '\$${widget.hotel.pricePerNight.toStringAsFixed(0)} / night',
+          ),
+          const SizedBox(height: 8),
+          _summaryRow(
+            'Stay',
+            hasDates
+                ? '$selectedNights night${selectedNights == 1 ? '' : 's'}'
+                : 'Choose dates',
+          ),
+          const SizedBox(height: 8),
+          _summaryRow('Guests', '$guestCount guest${guestCount == 1 ? '' : 's'}'),
+          const Divider(height: 26),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Estimated total',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              Text(
+                hasDates ? '\$${estimatedTotal.toStringAsFixed(0)}' : '--',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade700,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.black54)),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+      ],
     );
   }
 
@@ -146,6 +268,8 @@ class _ReservationScreenState extends State<ReservationScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 20),
+            _buildPriceSummary(),
             const Spacer(),
             ElevatedButton(
               onPressed: confirmBooking,

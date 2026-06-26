@@ -26,7 +26,7 @@ const List<Hotel> hotels = [
     pricePerNight: 199,
     rating: 4.8,
     imageUrl:
-        'https://images.unsplash.com/photo-1501117716987-c8e80f0f6cf0?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80',
     amenities: ['Free Wi-Fi', 'Pool', 'Spa', 'Breakfast'],
   ),
   Hotel(
@@ -36,7 +36,7 @@ const List<Hotel> hotels = [
     pricePerNight: 229,
     rating: 4.6,
     imageUrl:
-        'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=900&q=80',
     amenities: ['Gym', 'Rooftop bar', 'Room service', 'Concierge'],
   ),
   Hotel(
@@ -47,7 +47,7 @@ const List<Hotel> hotels = [
     pricePerNight: 259,
     rating: 4.7,
     imageUrl:
-        'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=900&q=80',
     amenities: ['Ski access', 'Hot tub', 'Gym', 'Pet friendly'],
   ),
 ];
